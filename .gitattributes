@@ -1,0 +1,4 @@
+*.bat text eol=crlf working-tree-encoding=UTF-8
+*.h text eol=crlf working-tree-encoding=UTF-8
+*.cpp text eol=crlf working-tree-encoding=UTF-8
+*.cs text eol=crlf working-tree-encoding=UTF-8

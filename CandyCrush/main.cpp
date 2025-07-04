@@ -68,6 +68,17 @@ const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 	{1,1,1,1,1,1,1,1,1,1,1,1,},
 };
 
+// Block Data
+const int BLOCKS[] = {'☆', '♧', '◇', '○', '△', '▽', '♤', '♡'};		// Not Corrected Block
+const int CHECKBLOCKS[] = { '★', '♣', '◆', '●', '▲', '▼', '♠', '♥'};	// Corrected Block
+
+// Block Type
+const char BLOCK_TYPES[][4] =
+{
+	"  ",
+	"▣",
+};
+
 // Map Data
 int g_nArrMap[MAP_HEIGHT][MAP_WIDTH] = {0,};
 

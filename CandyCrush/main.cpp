@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <Windows.h>
 #include <conio.h>
+#include "Player.h"
 
 using namespace std;
 
@@ -69,8 +70,8 @@ const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 };
 
 // Block Data
-const int BLOCKS[] = {'☆', '♧', '◇', '○', '△', '▽', '♤', '♡'};		// Not Corrected Block
-const int CHECKBLOCKS[] = { '★', '♣', '◆', '●', '▲', '▼', '♠', '♥'};	// Corrected Block
+const int BLOCKS[]		= { '☆', '♧', '◇', '○', '△', '▽', '♤', '♡' };	// Not Corrected Block
+const int CHECKBLOCKS[] = { '★', '♣', '◆', '●', '▲', '▼', '♠', '♥' };		// Corrected Block
 
 // Block Type
 const char BLOCK_TYPES[][4] =
@@ -81,8 +82,12 @@ const char BLOCK_TYPES[][4] =
 
 // Map Data
 int g_nArrMap[MAP_HEIGHT][MAP_WIDTH] = {0,};
-
+// Block Data
+int* g_pCurBlock;
+// Console Data
 stConsole g_Console;
+// Player Data
+CPlayer g_player;
 
 void InitGame(bool bInitConsole = true)
 {
@@ -109,6 +114,29 @@ void InitGame(bool bInitConsole = true)
 		SetConsoleScreenBufferSize(g_Console.hBuffer[1], consoleInfo.dwSize);
 		SetConsoleWindowInfo(g_Console.hBuffer[1], TRUE, &consoleInfo.srWindow);
 		SetConsoleCursorInfo(g_Console.hBuffer[1], &consoleCursor);
+	}
+}
+
+void Render(int nXOffset = 0, int nYOffset = 0)
+{
+	COORD coord{ 0, };
+	int nXAdd = 0;
+	DWORD dw = 0;
+	char chBuf[256] = { 0, };
+
+	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
+	{
+		nXAdd = 0;
+		for (int nX = 0; nX < MAP_WIDTH; ++nX)
+		{
+			coord.X = nXAdd + nXOffset;
+			coord.Y = nY + nYOffset;
+
+			SetConsoleCursorPosition(g_Console.hBuffer[g_Console.nCurBuffer], coord);
+			WriteFile(g_Console.hBuffer[g_Console.nCurBuffer], BLOCK_TYPES[g_nArrMap[nY][nX]], sizeof(BLOCK_TYPES[g_nArrMap[nY][nX]]), &dw, NULL);
+
+			++nXAdd;
+		}
 	}
 }
 
@@ -141,6 +169,23 @@ void InputKey()
 			break;
 		}
 	}
+}
+
+void CalcPlayer()
+{
+	COORD playerCursor = g_player.GetCursor();
+
+	// 선택되지 않은 BLOCKS[i] -> CHECKBLOCKS[i]로 변경
+	// 선택된 CHECKBLOCKS[i] -> BLOCKS[i]로 돌려놓기
+}
+
+bool CheckThreeMatch()
+{
+	// 3개 이상 같은 문자가 세로/가로로 나열되었을 때
+	// 세로: 2차원 배열에서 같은 열에 같은 문자가 3개 이상으로 나열되었을 때
+	// 가로: 2차원 배열에서 같은 행에 같은 문자가 3개 이상으로 나열되었을 때
+
+	return false;
 }
 
 void ClearScreen()
@@ -179,7 +224,7 @@ int main()
 	while (true)
 	{
 		InputKey();
-		//CalcPlayer();
+		CalcPlayer();
 
 		//CheckBottom();
 		//Render(3, 1);

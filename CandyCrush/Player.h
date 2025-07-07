@@ -12,8 +12,16 @@ public:
 private:
 	// Current X Position
 	int m_nXPos;
+	// Minimum X Position
+	int m_nMinXPos;
+	// Maximum X Position
+	int m_nMaxXPos;
 	// Current Y Position
 	int m_nYPos;
+	// Minimum Y Position
+	int m_nMinYPos;
+	// Maximum Y Position
+	int m_nMaxYPos;
 	// Current Block Index
 	int m_nCurBlock;
 	// Current Block State
@@ -29,6 +37,18 @@ public:
 		, m_nGameScore(0), m_bIsGameOver(false)
 	{ }
 
+	inline void SetXPositionRange(int nMinXPos, int nMaxXPos)
+	{
+		m_nMinXPos = nMinXPos;
+		m_nMaxXPos = nMaxXPos;
+	}
+
+	inline void SetYPositionRange(int nMinYPos, int nMaxYPos)
+	{
+		m_nMinYPos = nMinYPos;
+		m_nMaxYPos = nMaxYPos;
+	}
+
 	inline void SetXPosition(int nXPos)
 	{
 		m_nXPos = nXPos;
@@ -39,15 +59,21 @@ public:
 		m_nYPos = nYPos;
 	}
 
-	inline void SetCurBlock(int nBlock)
+	inline void SetPosition(int nXPos, int nYPos)
+	{
+		m_nXPos = nXPos;
+		m_nYPos = nYPos;
+	}
+
+	inline void SetBlock(int nBlock)
 	{
 		m_nCurBlock = nBlock;
 	}
 
-	//inline void SetCheckBlock(eCheckBlock Check)
-	//{
-	//	// Corrected Block
-	//}
+	inline void SetCheckBlock(eCheckBlock Check)
+	{
+		m_eCheckBlock = Check;
+	}
 
 	inline void SetGameScore(int nScore)
 	{

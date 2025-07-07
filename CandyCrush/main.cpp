@@ -10,8 +10,8 @@ constexpr int WIN_HEIGHT = 60;
 
 constexpr int MAP_WIDTH = 12;
 constexpr int MAP_HEIGHT = 24;
-constexpr int START_POSITION_X = 4;
-constexpr int START_POSITION_Y = 1;
+constexpr int START_POS_X = 4;
+constexpr int START_POS_Y = 1;
 
 // Key Code
 enum eKeyCode
@@ -70,8 +70,8 @@ const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 };
 
 // Block Data
-const int BLOCKS[]		= { '☆', '♧', '◇', '○', '△', '▽', '♤', '♡' };	// Not Corrected Block
-const int CHECKBLOCKS[] = { '★', '♣', '◆', '●', '▲', '▼', '♠', '♥' };		// Corrected Block
+const int BLOCKS[]		= { '☆', '♧', '◇', '○', '△', '▽', '♤', '♡' };		
+const int CHECKBLOCKS[] = { '★', '♣', '◆', '●', '▲', '▼', '♠', '♥' };		
 
 // Block Type
 const char BLOCK_TYPES[][4] =
@@ -84,13 +84,30 @@ const char BLOCK_TYPES[][4] =
 int g_nArrMap[MAP_HEIGHT][MAP_WIDTH] = {0,};
 // Block Data
 int* g_pCurBlock;
+// Selected Block Data
+int* g_pSelBlock;
 // Console Data
 stConsole g_Console;
 // Player Data
 CPlayer g_player;
+// Previous Player Data
+CPlayer g_prevPlayerData;
 
 void InitGame(bool bInitConsole = true)
 {
+	// Initialize Player Data
+	{
+		g_player.SetPosition(START_POS_X, START_POS_Y);
+		g_player.SetXPositionRange(-1, MAP_WIDTH);
+		g_player.SetYPositionRange(0, MAP_HEIGHT);
+		//g_player.SetBlock(RandomBlock());
+		g_player.SetCheckBlock(CPlayer::eCheckBlock::Check0);
+		g_player.SetGameScore(0);
+		g_player.SetGameOver(false);
+
+		g_prevPlayerData = g_player;
+	}
+
 	if (bInitConsole)
 	{
 		g_Console.hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -151,15 +168,78 @@ void InputKey()
 		switch (nKey)
 		{
 		case eKeyCode::KEY_UP:
+		{
+			if(!g_pSelBlock) CalcPlayer();
+			
+			int index = g_pSelBlock - &g_nArrMap[0][0];
+
+			int y = index / MAP_WIDTH;
+			int x = index % MAP_WIDTH;
+
+			if (y > 0)
+			{
+				std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);				
+				g_pSelBlock = &g_nArrMap[y - 1][x];
+			}
+
 			break;
+		}
 		case eKeyCode::KEY_DOWN:
+		{
+			if (!g_pSelBlock) CalcPlayer();
+
+			int index = g_pSelBlock - &g_nArrMap[0][0];
+
+			int y = index / MAP_WIDTH;
+			int x = index % MAP_WIDTH;
+
+			if (y > 0)
+			{
+				std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);
+				g_pSelBlock = &g_nArrMap[y + 1][x];
+			}
+
 			break;
+		}
 		case eKeyCode::KEY_LEFT:
+		{
+			if (!g_pSelBlock) CalcPlayer();
+
+			int index = g_pSelBlock - &g_nArrMap[0][0];
+
+			int y = index / MAP_WIDTH;
+			int x = index % MAP_WIDTH;
+
+			if (x > 0)
+			{
+				std::swap(g_nArrMap[y][x], g_nArrMap[y][x - 1]);
+				g_pSelBlock = &g_nArrMap[y][x - 1];
+			}
+
 			break;
+		}
 		case eKeyCode::KEY_RIGHT:
+		{
+			if (!g_pSelBlock) CalcPlayer();
+
+			int index = g_pSelBlock - &g_nArrMap[0][0];
+
+			int y = index / MAP_WIDTH;
+			int x = index % MAP_WIDTH;
+
+			if (x > 0)
+			{
+				std::swap(g_nArrMap[y][x], g_nArrMap[y][x + 1]);
+				g_pSelBlock = &g_nArrMap[y][x + 1];
+			}
+
 			break;
+		}
 		case eKeyCode::KEY_SPACE:
+		{
+			*g_pSelBlock = *g_pCurBlock;
 			break;
+		}
 		case eKeyCode::KEY_R:
 		{
 			InitGame(false);
@@ -171,12 +251,19 @@ void InputKey()
 	}
 }
 
-void CalcPlayer()
+void CalcPlayer() // 현재 블록 위치 표시 함수
 {
 	COORD playerCursor = g_player.GetCursor();
-
-	// 선택되지 않은 BLOCKS[i] -> CHECKBLOCKS[i]로 변경
-	// 선택된 CHECKBLOCKS[i] -> BLOCKS[i]로 돌려놓기
+	int BlockValue = g_nArrMap[playerCursor.Y][playerCursor.X];
+	for (int i = 0; i < sizeof(BLOCKS); ++i)
+	{
+		if (BlockValue == BLOCKS[i])
+		{
+			*g_pCurBlock = CHECKBLOCKS[i];
+			/*g_player.SetCheckBlock(CPlayer::eCheckBlock::Check1);
+			g_prevPlayerData.SetCheckBlock(CPlayer::eCheckBlock::Check0);*/
+		}
+	}
 }
 
 bool CheckThreeMatch()
@@ -184,6 +271,7 @@ bool CheckThreeMatch()
 	// 3개 이상 같은 문자가 세로/가로로 나열되었을 때
 	// 세로: 2차원 배열에서 같은 열에 같은 문자가 3개 이상으로 나열되었을 때
 	// 가로: 2차원 배열에서 같은 행에 같은 문자가 3개 이상으로 나열되었을 때
+	// 세줄이 되더라도 선택된 블록이 코드가 다를 거라 어떻게 처리할 건지 고민해보기
 
 	return false;
 }

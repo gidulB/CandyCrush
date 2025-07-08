@@ -360,37 +360,64 @@ void InputKey()
 	}
 }
 
+void FillBlank()
+{
+	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
+	{
+		for (int nX = 0; nX < MAP_WIDTH; ++nX)
+		{
+			if (g_nArrMap[nY][nX] == -1)
+			{
+				// 위쪽에서 블록을 전부 당겨 내려오기
+				for (int nK = nY - 1; nK >= 0; --nK)
+				{
+					if (g_nArrMap[nK][nX] >= 0 && g_nArrMap[nK][nX] < BLOCK_COUNT)
+					{
+						// 아래로 하나씩 밀기
+						for (int j = nK; j < nY; ++j)
+						{
+							g_nArrMap[j + 1][nX] = g_nArrMap[j][nX];
+						}
+						g_nArrMap[nK][nX] = 0; // 맨 위는 빈칸
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
 bool IsBlockMatch()
 {
 	bool bMatched = false;
 
-	for (int y = 0; y < MAP_HEIGHT; ++y)
+	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
-		for (int x = 0; x < MAP_WIDTH - 2; ++x)
+		for (int nX = 0; nX < MAP_WIDTH - 2; ++nX)
 		{
-			int a = g_nArrMap[y][x];
-			int b = g_nArrMap[y][x + 1];
-			int c = g_nArrMap[y][x + 2];
+			int a = g_nArrMap[nY][nX];
+			int b = g_nArrMap[nY][nX + 1];
+			int c = g_nArrMap[nY][nX + 2];
 
 			if (a >= 0 && a == b && b == c)
 			{
-				matchFlags[y][x] = matchFlags[y][x + 1] = matchFlags[y][x + 2] = true;
+				matchFlags[nY][nX] = matchFlags[nY][nX + 1] = matchFlags[nY][nX + 2] = true;
 				bMatched = true;
 			}
 		}
 	}
 
-	for (int y = 0; y < MAP_HEIGHT - 2; ++y)
+	for (int nY = 0; nY < MAP_HEIGHT - 2; ++nY)
 	{
-		for (int x = 0; x < MAP_WIDTH; ++x)
+		for (int nX = 0; nX < MAP_WIDTH; ++nX)
 		{
-			int a = g_nArrMap[y][x];
-			int b = g_nArrMap[y + 1][x];
-			int c = g_nArrMap[y + 2][x];
+			int a = g_nArrMap[nY][nX];
+			int b = g_nArrMap[nY + 1][nX];
+			int c = g_nArrMap[nY + 2][nX];
 
 			if (a >= 0 && a == b && b == c)
 			{
-				matchFlags[y][x] = matchFlags[y + 1][x] = matchFlags[y + 2][x] = true;
+				matchFlags[nY][nX] = matchFlags[nY + 1][nX] = matchFlags[nY + 2][nX] = true;
 				bMatched = true;
 			}
 		}
@@ -399,25 +426,31 @@ bool IsBlockMatch()
 	return bMatched;
 }
 
-void DeleteLine()
+bool DeleteLine()
 {
-	for (int y = 0; y < MAP_HEIGHT; ++y)
+	bool bDelete = false; 
+	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
-		for (int x = 0; x < MAP_WIDTH; ++x)
+		for (int nX = 0; nX < MAP_WIDTH; ++nX)
 		{
-			if (matchFlags[y][x])
+			if (matchFlags[nY][nX])
 			{
-				g_nArrMap[y][x] = -1;  // -1은 벽/빈칸 처리
+				g_nArrMap[nY][nX] = -1;  // -1은 벽/빈칸 처리		
+				bDelete = true;
 			}
 		}
 	}
+
+	return bDelete;
 }
 
 void CheckBlockLine()
 {
+	memset(matchFlags, false, sizeof(matchFlags));
+
 	if (!IsBlockMatch()) return;
 
-	DeleteLine();
+	if (DeleteLine()) FillBlank();
 }
 
 void ClearScreen()

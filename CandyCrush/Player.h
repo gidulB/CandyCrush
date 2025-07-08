@@ -3,11 +3,11 @@
 class CPlayer
 {
 public:
-	enum eCheckBlock
-	{
-		Check0, // Not Corrected Block
-		Check1, // Corrected Block
-	};
+	//enum eCheckBlock
+	//{
+	//	Check0, // Not Corrected Block
+	//	Check1, // Corrected Block
+	//};
 
 private:
 	// Current X Position
@@ -25,15 +25,15 @@ private:
 	// Current Block Index
 	int m_nCurBlock;
 	// Current Block State
-	eCheckBlock m_eCheckBlock;
+	//eCheckBlock m_eCheckBlock;
 	// Game Score
 	int m_nGameScore;
 	// Game Over
 	bool m_bIsGameOver;
 
 public:
-	CPlayer(int nXPos = 0, int nYPos = 0, int nCurBlock = 0, eCheckBlock eCheck = eCheckBlock::Check0)
-		: m_nXPos(nXPos), m_nYPos(nYPos), m_nCurBlock(nCurBlock), m_eCheckBlock(eCheck)
+	CPlayer(int nXPos = 0, int nYPos = 0, int nCurBlock = 0/*, eCheckBlock eCheck = eCheckBlock::Check0*/)
+		: m_nXPos(nXPos), m_nYPos(nYPos), m_nCurBlock(nCurBlock)/*, m_eCheckBlock(eCheck)*/
 		, m_nMinXPos(0), m_nMinYPos(0), m_nMaxXPos(11), m_nMaxYPos(11)
 		, m_nGameScore(0), m_bIsGameOver(false)
 	{ }
@@ -66,15 +66,21 @@ public:
 		m_nYPos = nYPos;
 	}
 
+	inline void AddPosition(int nXAdder, int nYAdder)
+	{
+		m_nXPos = (m_nXPos + nXAdder >= m_nMinXPos) ? (m_nXPos + nXAdder <= m_nMaxXPos ? m_nXPos + nXAdder : m_nMaxXPos) : m_nMinXPos;
+		m_nYPos = (m_nYPos + nYAdder >= m_nMinYPos) ? (m_nYPos + nYAdder <= m_nMaxYPos ? m_nYPos + nYAdder : m_nMaxYPos) : m_nMinYPos;
+	}
+
 	inline void SetBlock(int nBlock)
 	{
 		m_nCurBlock = nBlock;
 	}
 
-	inline void SetCheckBlock(eCheckBlock Check)
+	/*inline void SetCheckBlock(eCheckBlock Check)
 	{
 		m_eCheckBlock = Check;
-	}
+	}*/
 
 	inline void SetGameScore(int nScore)
 	{
@@ -106,10 +112,10 @@ public:
 		return m_nCurBlock;
 	}
 
-	inline eCheckBlock GetCheckBlock() const
+	/*inline eCheckBlock GetCheckBlock() const
 	{
 		return m_eCheckBlock;
-	}
+	}*/
 
 	inline COORD GetCursor() const
 	{
@@ -132,7 +138,7 @@ public:
 		m_nXPos = player.m_nXPos;
 		m_nYPos = player.m_nYPos;
 		m_nCurBlock = player.m_nCurBlock;
-		m_eCheckBlock = player.m_eCheckBlock;
+		//m_eCheckBlock = player.m_eCheckBlock;
 		m_nGameScore = player.m_nGameScore;
 		m_bIsGameOver = player.m_bIsGameOver;
 
@@ -144,7 +150,7 @@ public:
 		return (player1.m_nXPos == player2.m_nXPos) &&
 			(player1.m_nYPos == player2.m_nYPos) &&
 			(player1.m_nCurBlock == player2.m_nCurBlock) &&
-			(player1.m_eCheckBlock == player2.m_eCheckBlock) &&
+			//(player1.m_eCheckBlock == player2.m_eCheckBlock) &&
 			(player1.m_nGameScore == player2.m_nGameScore) &&
 			(player1.m_bIsGameOver == player2.m_bIsGameOver);
 	}

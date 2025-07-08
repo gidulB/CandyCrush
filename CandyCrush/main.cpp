@@ -94,7 +94,7 @@ void InitGame(bool bInitConsole = true)
 		g_player.SetXPositionRange(-1, MAP_WIDTH);
 		g_player.SetYPositionRange(0, MAP_HEIGHT);
 		g_player.SetBlock(0);
-		g_player.SetCheckBlock(CPlayer::eCheckBlock::Check1);
+		//g_player.SetCheckBlock(CPlayer::eCheckBlock::Check1);
 		g_player.SetGameScore(0);
 		g_player.SetGameOver(false);
 
@@ -106,7 +106,7 @@ void InitGame(bool bInitConsole = true)
 		g_console.hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		g_console.nCurBuffer = 0;
 
-		CONSOLE_CURSOR_INFO consoleCursor{ 1, FALSE };
+		CONSOLE_CURSOR_INFO consoleCursor{ 1, TRUE };
 		CONSOLE_SCREEN_BUFFER_INFO consoleInfo{ 0, };
 		GetConsoleScreenBufferInfo(g_console.hConsole, &consoleInfo);
 		consoleInfo.dwSize.X = MAP_WIDTH;
@@ -165,8 +165,8 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 			if (blockIdx >= 0 && blockIdx < BLOCK_COUNT)
 			{
 				COORD playerCursor = g_player.GetCursor();
-				if (playerCursor.X == nX && playerCursor.Y == nY &&
-					g_player.GetCheckBlock() == CPlayer::eCheckBlock::Check1)
+				if (playerCursor.X == nX && playerCursor.Y == nY 
+					/*&& g_player.GetCheckBlock() == CPlayer::eCheckBlock::Check1*/)
 				{
 					WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], CHECKBLOCKS[blockIdx], 1, &dw, NULL);
 				}
@@ -184,14 +184,15 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 
 }
 
-void CurrentPlayer() // 현재 블록 위치 표시 함수
+void CurrentPlayer(int x, int y) // 현재 블록 위치 표시 함수
 {
 	COORD playerCursor = g_player.GetCursor();
 	int blockIndex = g_nArrMap[playerCursor.Y][playerCursor.X];
 
 	if (blockIndex >= 0 && blockIndex < BLOCK_COUNT)
 	{
-		g_pCurBlock = &g_nArrMap[playerCursor.Y][playerCursor.X]; 
+		g_player.AddPosition(x, y);
+		g_pCurBlock = &g_nArrMap[playerCursor.Y + y][playerCursor.X + x]; 
 	}
 }
 
@@ -214,7 +215,7 @@ void InputKey()
 		{
 		case eKeyCode::KEY_UP:
 		{
-			if(!g_pSelBlock) CurrentPlayer();
+			if(!g_pSelBlock) CurrentPlayer(0, -1);
 			else
 			{
 				int index = g_pSelBlock - &g_nArrMap[0][0];
@@ -225,14 +226,15 @@ void InputKey()
 				if (y > 0)
 				{
 					std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);
-					g_pCurBlock = &g_nArrMap[y - 1][x];
+					g_pCurBlock = &g_nArrMap[y][x];
+					g_pSelBlock = nullptr;
 				}
 			}
 			break;
 		}
 		case eKeyCode::KEY_DOWN:
 		{
-			if (!g_pSelBlock) CurrentPlayer();
+			if (!g_pSelBlock) CurrentPlayer(0, 1);
 			else
 			{
 				int index = g_pSelBlock - &g_nArrMap[0][0];
@@ -243,14 +245,15 @@ void InputKey()
 				if (y > 0 && y < MAP_HEIGHT - 1)
 				{
 					std::swap(g_nArrMap[y][x], g_nArrMap[y + 1][x]);
-					g_pCurBlock = &g_nArrMap[y + 1][x];
+					g_pCurBlock = &g_nArrMap[y][x];
+					g_pSelBlock = nullptr;
 				}
 			}
 			break;
 		}
 		case eKeyCode::KEY_LEFT:
 		{
-			if (!g_pSelBlock) CurrentPlayer();
+			if (!g_pSelBlock) CurrentPlayer(-1, 0);
 			else
 			{
 				int index = g_pSelBlock - &g_nArrMap[0][0];
@@ -262,13 +265,14 @@ void InputKey()
 				{
 					std::swap(g_nArrMap[y][x], g_nArrMap[y][x - 1]);
 					g_pCurBlock = &g_nArrMap[y][x];
+					g_pSelBlock = nullptr;
 				}
 			}
 			break;
 		}
 		case eKeyCode::KEY_RIGHT:
 		{
-			if (!g_pSelBlock) CurrentPlayer(); 
+			if (!g_pSelBlock) CurrentPlayer(1, 0); 
 			else
 			{
 				int index = g_pSelBlock - &g_nArrMap[0][0];
@@ -279,7 +283,8 @@ void InputKey()
 				if (x > 0 && x < MAP_WIDTH - 1)
 				{
 					std::swap(g_nArrMap[y][x], g_nArrMap[y][x + 1]);
-					g_pCurBlock = &g_nArrMap[y][x + 1];
+					g_pCurBlock = &g_nArrMap[y][x];
+					g_pSelBlock = nullptr;
 				}
 
 			}

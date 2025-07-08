@@ -34,7 +34,7 @@ private:
 public:
 	CPlayer(int nXPos = 0, int nYPos = 0, int nCurBlock = 0, eCheckBlock eCheck = eCheckBlock::Check0)
 		: m_nXPos(nXPos), m_nYPos(nYPos), m_nCurBlock(nCurBlock), m_eCheckBlock(eCheck)
-		, m_nMinXPos(0), m_nMinYPos(0), m_nMaxXPos(26), m_nMaxYPos(26)
+		, m_nMinXPos(0), m_nMinYPos(0), m_nMaxXPos(11), m_nMaxYPos(11)
 		, m_nGameScore(0), m_bIsGameOver(false)
 	{ }
 

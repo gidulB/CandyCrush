@@ -94,7 +94,7 @@ void InitGame(bool bInitConsole = true)
 		g_player.SetXPositionRange(-1, MAP_WIDTH);
 		g_player.SetYPositionRange(0, MAP_HEIGHT);
 		g_player.SetBlock(0);
-		g_player.SetCheckBlock(CPlayer::eCheckBlock::Check0);
+		g_player.SetCheckBlock(CPlayer::eCheckBlock::Check1);
 		g_player.SetGameScore(0);
 		g_player.SetGameOver(false);
 
@@ -164,7 +164,16 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 			int blockIdx = g_nArrMap[nY][nX];
 			if (blockIdx >= 0 && blockIdx < BLOCK_COUNT)
 			{
-				WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], BLOCKS[blockIdx], 1, &dw, NULL);
+				COORD playerCursor = g_player.GetCursor();
+				if (playerCursor.X == nX && playerCursor.Y == nY &&
+					g_player.GetCheckBlock() == CPlayer::eCheckBlock::Check1)
+				{
+					WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], CHECKBLOCKS[blockIdx], 1, &dw, NULL);
+				}
+				else
+				{
+					WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], BLOCKS[blockIdx], 1, &dw, NULL);
+				}
 			}
 			else
 			{
@@ -178,12 +187,19 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 void CurrentPlayer() // 현재 블록 위치 표시 함수
 {
 	COORD playerCursor = g_player.GetCursor();
-	int BlockValue = g_nArrMap[playerCursor.Y][playerCursor.X];
+	int blockIndex = g_nArrMap[playerCursor.Y][playerCursor.X];
 
-	// playerCursor가 가리킨 값이 빈블록일 경우, 
-	// 빈블록의 인덱스값을 가져오고,
-	// 같은 인덱스인 채워진 블록을 가져와서
-	// 블록을 대체함
+	if (blockIndex >= 0 && blockIndex < BLOCK_COUNT)
+	{
+		g_pCurBlock = &g_nArrMap[playerCursor.Y][playerCursor.X]; 
+	}
+}
+
+void SelectBlock()
+{
+	if (!g_pCurBlock) return;
+
+	g_pSelBlock = g_pCurBlock;
 }
 
 void InputKey()
@@ -199,74 +215,79 @@ void InputKey()
 		case eKeyCode::KEY_UP:
 		{
 			if(!g_pSelBlock) CurrentPlayer();
-			
-			int index = g_pSelBlock - &g_nArrMap[0][0];
-
-			int y = index / MAP_WIDTH;
-			int x = index % MAP_WIDTH;
-
-			if (y > 0)
+			else
 			{
-				std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);				
-				g_pCurBlock = &g_nArrMap[y - 1][x];
-			}
+				int index = g_pSelBlock - &g_nArrMap[0][0];
 
+				int y = index / MAP_WIDTH;
+				int x = index % MAP_WIDTH;
+
+				if (y > 0)
+				{
+					std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);
+					g_pCurBlock = &g_nArrMap[y - 1][x];
+				}
+			}
 			break;
 		}
 		case eKeyCode::KEY_DOWN:
 		{
 			if (!g_pSelBlock) CurrentPlayer();
-
-			int index = g_pSelBlock - &g_nArrMap[0][0];
-
-			int y = index / MAP_WIDTH;
-			int x = index % MAP_WIDTH;
-
-			if (y > 0 && y < MAP_HEIGHT - 1)
+			else
 			{
-				std::swap(g_nArrMap[y][x], g_nArrMap[y + 1][x]);
-				g_pCurBlock = &g_nArrMap[y + 1][x];
-			}
+				int index = g_pSelBlock - &g_nArrMap[0][0];
 
+				int y = index / MAP_WIDTH;
+				int x = index % MAP_WIDTH;
+
+				if (y > 0 && y < MAP_HEIGHT - 1)
+				{
+					std::swap(g_nArrMap[y][x], g_nArrMap[y + 1][x]);
+					g_pCurBlock = &g_nArrMap[y + 1][x];
+				}
+			}
 			break;
 		}
 		case eKeyCode::KEY_LEFT:
 		{
 			if (!g_pSelBlock) CurrentPlayer();
-
-			int index = g_pSelBlock - &g_nArrMap[0][0];
-
-			int y = index / MAP_WIDTH;
-			int x = index % MAP_WIDTH;
-
-			if (x > 0)
+			else
 			{
-				std::swap(g_nArrMap[y][x], g_nArrMap[y][x - 1]);
-				g_pCurBlock = &g_nArrMap[y][x];
-			}
+				int index = g_pSelBlock - &g_nArrMap[0][0];
 
+				int y = index / MAP_WIDTH;
+				int x = index % MAP_WIDTH;
+
+				if (x > 0)
+				{
+					std::swap(g_nArrMap[y][x], g_nArrMap[y][x - 1]);
+					g_pCurBlock = &g_nArrMap[y][x];
+				}
+			}
 			break;
 		}
 		case eKeyCode::KEY_RIGHT:
 		{
-			if (!g_pSelBlock) CurrentPlayer();
-
-			int index = g_pSelBlock - &g_nArrMap[0][0];
-
-			int y = index / MAP_WIDTH;
-			int x = index % MAP_WIDTH;
-
-			if (x > 0 && x < MAP_WIDTH - 1)
+			if (!g_pSelBlock) CurrentPlayer(); 
+			else
 			{
-				std::swap(g_nArrMap[y][x], g_nArrMap[y][x + 1]);
-				g_pCurBlock = &g_nArrMap[y][x + 1];
-			}
+				int index = g_pSelBlock - &g_nArrMap[0][0];
 
+				int y = index / MAP_WIDTH;
+				int x = index % MAP_WIDTH;
+
+				if (x > 0 && x < MAP_WIDTH - 1)
+				{
+					std::swap(g_nArrMap[y][x], g_nArrMap[y][x + 1]);
+					g_pCurBlock = &g_nArrMap[y][x + 1];
+				}
+
+			}
 			break;
 		}
 		case eKeyCode::KEY_SPACE:
 		{
-			*g_pSelBlock = *g_pCurBlock;
+			SelectBlock();
 			break;
 		}
 		case eKeyCode::KEY_R:
@@ -329,7 +350,6 @@ int main()
 		
 		//CheckBottom();
 		Render(30, 5);
-		CurrentPlayer();
 
 		ClearScreen();
 		BufferFlip();

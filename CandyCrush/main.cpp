@@ -4,6 +4,16 @@
 #include <random>
 #include "Player.h"
 
+// @TODO
+// 1. 3X3 이상이면 삭제
+// 2. 삭제되면 점수 추가
+// 3. 빈 공간 생기면 채워넣기
+// 4. 생성되는 시점부터 3X3이면 자동으로 삭제 및 점수 추가하기
+// 5. InputKey로 위치 바꾸면 잠시 CHECKBLOCK 해제
+// 6. 맞으면 1,2,3 진행 후 다시 g_pCurBlock에 CHECKBLOCK 생성
+// 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성
+// + 제한시간을 넣을까 말까
+
 using namespace std;
 
 constexpr int WIN_WIDTH = 70;
@@ -34,6 +44,9 @@ const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 const wchar_t* BLOCKS[] = { L"☆", L"♧", L"♤", L"♡" };
 const wchar_t* CHECKBLOCKS[] = { L"★", L"♣", L"♠", L"♥" };
 constexpr int BLOCK_COUNT = sizeof(BLOCKS) / sizeof(BLOCKS[0]);
+
+// Block Type
+const wchar_t* BLOCK_TYPES[] = { L"  ", L"▣", };
 
 // Key Code
 enum eKeyCode
@@ -75,6 +88,8 @@ struct stConsole
 
 // Map Data
 int g_nArrMap[MAP_HEIGHT][MAP_WIDTH] = {0,};
+// Match Flag
+bool matchFlags[MAP_HEIGHT][MAP_WIDTH] = { false };
 // Block Data
 int* g_pCurBlock;
 // Selected Block Data
@@ -140,7 +155,7 @@ void InitGame(bool bInitConsole = true)
 				}
 				else
 				{
-					g_nArrMap[nY][nX] = -1;
+					g_nArrMap[nY][nX] = -2;
 				}
 			}
 		}
@@ -173,13 +188,17 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 					WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], BLOCKS[blockIdx], 1, &dw, NULL);
 				}
 			}
-			else
+			else if (blockIdx == -1)
 			{
-				WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], L"▣", 1, &dw, NULL);
+				WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], BLOCK_TYPES[0], wcslen(BLOCK_TYPES[0]), &dw, NULL); // 공백
 			}
+			else if (blockIdx == -2)
+			{
+				WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], BLOCK_TYPES[1], wcslen(BLOCK_TYPES[1]), &dw, NULL); // 벽
+			}
+
 		}
 	}
-
 }
 
 bool CheckBorder(const COORD& coordPlayer)
@@ -341,14 +360,64 @@ void InputKey()
 	}
 }
 
-bool CheckThreeMatch()
+bool IsBlockMatch()
 {
-	// 3개 이상 같은 문자가 세로/가로로 나열되었을 때
-	// 세로: 2차원 배열에서 같은 열에 같은 문자가 3개 이상으로 나열되었을 때
-	// 가로: 2차원 배열에서 같은 행에 같은 문자가 3개 이상으로 나열되었을 때
-	// 세줄이 되더라도 선택된 블록이 코드가 다를 거라 어떻게 처리할 건지 고민해보기
+	bool bMatched = false;
 
-	return false;
+	for (int y = 0; y < MAP_HEIGHT; ++y)
+	{
+		for (int x = 0; x < MAP_WIDTH - 2; ++x)
+		{
+			int a = g_nArrMap[y][x];
+			int b = g_nArrMap[y][x + 1];
+			int c = g_nArrMap[y][x + 2];
+
+			if (a >= 0 && a == b && b == c)
+			{
+				matchFlags[y][x] = matchFlags[y][x + 1] = matchFlags[y][x + 2] = true;
+				bMatched = true;
+			}
+		}
+	}
+
+	for (int y = 0; y < MAP_HEIGHT - 2; ++y)
+	{
+		for (int x = 0; x < MAP_WIDTH; ++x)
+		{
+			int a = g_nArrMap[y][x];
+			int b = g_nArrMap[y + 1][x];
+			int c = g_nArrMap[y + 2][x];
+
+			if (a >= 0 && a == b && b == c)
+			{
+				matchFlags[y][x] = matchFlags[y + 1][x] = matchFlags[y + 2][x] = true;
+				bMatched = true;
+			}
+		}
+	}
+
+	return bMatched;
+}
+
+void DeleteLine()
+{
+	for (int y = 0; y < MAP_HEIGHT; ++y)
+	{
+		for (int x = 0; x < MAP_WIDTH; ++x)
+		{
+			if (matchFlags[y][x])
+			{
+				g_nArrMap[y][x] = -1;  // -1은 벽/빈칸 처리
+			}
+		}
+	}
+}
+
+void CheckBlockLine()
+{
+	if (!IsBlockMatch()) return;
+
+	DeleteLine();
 }
 
 void ClearScreen()
@@ -393,6 +462,8 @@ int main()
 		ClearScreen();
 		BufferFlip();
 		Sleep(1);
+
+		CheckBlockLine();
 	}
 
 	DestroyGame();

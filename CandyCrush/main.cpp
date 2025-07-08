@@ -94,7 +94,6 @@ void InitGame(bool bInitConsole = true)
 		g_player.SetXPositionRange(-1, MAP_WIDTH);
 		g_player.SetYPositionRange(0, MAP_HEIGHT);
 		g_player.SetBlock(0);
-		//g_player.SetCheckBlock(CPlayer::eCheckBlock::Check1);
 		g_player.SetGameScore(0);
 		g_player.SetGameOver(false);
 
@@ -106,7 +105,7 @@ void InitGame(bool bInitConsole = true)
 		g_console.hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		g_console.nCurBuffer = 0;
 
-		CONSOLE_CURSOR_INFO consoleCursor{ 1, TRUE };
+		CONSOLE_CURSOR_INFO consoleCursor{ 1, FALSE };
 		CONSOLE_SCREEN_BUFFER_INFO consoleInfo{ 0, };
 		GetConsoleScreenBufferInfo(g_console.hConsole, &consoleInfo);
 		consoleInfo.dwSize.X = MAP_WIDTH;
@@ -165,8 +164,7 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 			if (blockIdx >= 0 && blockIdx < BLOCK_COUNT)
 			{
 				COORD playerCursor = g_player.GetCursor();
-				if (playerCursor.X == nX && playerCursor.Y == nY 
-					/*&& g_player.GetCheckBlock() == CPlayer::eCheckBlock::Check1*/)
+				if (playerCursor.X == nX && playerCursor.Y == nY)
 				{
 					WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], CHECKBLOCKS[blockIdx], 1, &dw, NULL);
 				}
@@ -184,6 +182,33 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 
 }
 
+bool CheckBorder(const COORD& coordPlayer)
+{
+	// 맵 범위를 벗어났으면 충돌
+	if (coordPlayer.X < 0 || coordPlayer.X >= MAP_WIDTH ||
+		coordPlayer.Y < 0 || coordPlayer.Y >= MAP_HEIGHT)
+	{
+		return true;
+	}
+
+	// 벽이라면 충돌
+	if (g_nArrMap[coordPlayer.Y][coordPlayer.X] == -1)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool IsMoveAvailable(int nXAdder, int nYAdder)
+{
+	COORD coorNext = g_player.GetCursor();
+	coorNext.X += nXAdder;
+	coorNext.Y += nYAdder;
+
+	return !CheckBorder(coorNext);
+}
+
 void CurrentPlayer(int x, int y) // 현재 블록 위치 표시 함수
 {
 	COORD playerCursor = g_player.GetCursor();
@@ -191,6 +216,8 @@ void CurrentPlayer(int x, int y) // 현재 블록 위치 표시 함수
 
 	if (blockIndex >= 0 && blockIndex < BLOCK_COUNT)
 	{
+		if (!IsMoveAvailable(x, y)) return;
+
 		g_player.AddPosition(x, y);
 		g_pCurBlock = &g_nArrMap[playerCursor.Y + y][playerCursor.X + x]; 
 	}
@@ -218,6 +245,8 @@ void InputKey()
 			if(!g_pSelBlock) CurrentPlayer(0, -1);
 			else
 			{
+				if (!IsMoveAvailable(0, -1)) break;
+
 				int index = g_pSelBlock - &g_nArrMap[0][0];
 
 				int y = index / MAP_WIDTH;
@@ -237,6 +266,8 @@ void InputKey()
 			if (!g_pSelBlock) CurrentPlayer(0, 1);
 			else
 			{
+				if (!IsMoveAvailable(0, 1)) break;
+
 				int index = g_pSelBlock - &g_nArrMap[0][0];
 
 				int y = index / MAP_WIDTH;
@@ -256,6 +287,8 @@ void InputKey()
 			if (!g_pSelBlock) CurrentPlayer(-1, 0);
 			else
 			{
+				if (!IsMoveAvailable(-1, 0)) break;
+
 				int index = g_pSelBlock - &g_nArrMap[0][0];
 
 				int y = index / MAP_WIDTH;
@@ -275,6 +308,8 @@ void InputKey()
 			if (!g_pSelBlock) CurrentPlayer(1, 0); 
 			else
 			{
+				if (!IsMoveAvailable(1, 0)) break;
+
 				int index = g_pSelBlock - &g_nArrMap[0][0];
 
 				int y = index / MAP_WIDTH;
@@ -353,7 +388,6 @@ int main()
 	{
 		InputKey();
 		
-		//CheckBottom();
 		Render(30, 5);
 
 		ClearScreen();

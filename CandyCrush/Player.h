@@ -2,13 +2,6 @@
 
 class CPlayer
 {
-public:
-	//enum eCheckBlock
-	//{
-	//	Check0, // Not Corrected Block
-	//	Check1, // Corrected Block
-	//};
-
 private:
 	// Current X Position
 	int m_nXPos;
@@ -24,16 +17,14 @@ private:
 	int m_nMaxYPos;
 	// Current Block Index
 	int m_nCurBlock;
-	// Current Block State
-	//eCheckBlock m_eCheckBlock;
 	// Game Score
 	int m_nGameScore;
 	// Game Over
 	bool m_bIsGameOver;
 
 public:
-	CPlayer(int nXPos = 0, int nYPos = 0, int nCurBlock = 0/*, eCheckBlock eCheck = eCheckBlock::Check0*/)
-		: m_nXPos(nXPos), m_nYPos(nYPos), m_nCurBlock(nCurBlock)/*, m_eCheckBlock(eCheck)*/
+	CPlayer(int nXPos = 0, int nYPos = 0, int nCurBlock = 0)
+		: m_nXPos(nXPos), m_nYPos(nYPos), m_nCurBlock(nCurBlock)
 		, m_nMinXPos(0), m_nMinYPos(0), m_nMaxXPos(11), m_nMaxYPos(11)
 		, m_nGameScore(0), m_bIsGameOver(false)
 	{ }
@@ -77,11 +68,6 @@ public:
 		m_nCurBlock = nBlock;
 	}
 
-	/*inline void SetCheckBlock(eCheckBlock Check)
-	{
-		m_eCheckBlock = Check;
-	}*/
-
 	inline void SetGameScore(int nScore)
 	{
 		m_nGameScore = nScore;
@@ -112,11 +98,6 @@ public:
 		return m_nCurBlock;
 	}
 
-	/*inline eCheckBlock GetCheckBlock() const
-	{
-		return m_eCheckBlock;
-	}*/
-
 	inline COORD GetCursor() const
 	{
 		COORD cursor{ (short)m_nXPos, (short)m_nYPos };
@@ -138,7 +119,6 @@ public:
 		m_nXPos = player.m_nXPos;
 		m_nYPos = player.m_nYPos;
 		m_nCurBlock = player.m_nCurBlock;
-		//m_eCheckBlock = player.m_eCheckBlock;
 		m_nGameScore = player.m_nGameScore;
 		m_bIsGameOver = player.m_bIsGameOver;
 
@@ -150,7 +130,6 @@ public:
 		return (player1.m_nXPos == player2.m_nXPos) &&
 			(player1.m_nYPos == player2.m_nYPos) &&
 			(player1.m_nCurBlock == player2.m_nCurBlock) &&
-			//(player1.m_eCheckBlock == player2.m_eCheckBlock) &&
 			(player1.m_nGameScore == player2.m_nGameScore) &&
 			(player1.m_bIsGameOver == player2.m_bIsGameOver);
 	}

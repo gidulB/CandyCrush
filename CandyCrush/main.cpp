@@ -5,7 +5,7 @@
 #include "Player.h"
 
 // @TODO
-// 1. 3X3 이상이면 삭제
+// 1. 3X3 이상이면 삭제 -> 해결
 // 2. 삭제되면 점수 추가
 // 3. 빈 공간 생기면 채워넣기
 // 4. 생성되는 시점부터 3X3이면 자동으로 삭제 및 점수 추가하기
@@ -13,6 +13,7 @@
 // 6. 맞으면 1,2,3 진행 후 다시 g_pCurBlock에 CHECKBLOCK 생성
 // 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성
 // + 제한시간을 넣을까 말까
+// + 처음 빈 공간 -> timer로 블록을 미리 생성하고, 완성된 블록 덩어리를 위에서 아래로 내려오도록 할까(벽에 닿을 때까지)
 
 using namespace std;
 
@@ -27,7 +28,7 @@ constexpr int START_POS_Y = 1;
 // Origin Map
 const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 {
-	{1,1,1,1,1,1,1,1,1,1,1,},
+	{1,0,0,0,0,0,0,0,0,0,1,},
 	{1,0,0,0,0,0,0,0,0,0,1,},
 	{1,0,0,0,0,0,0,0,0,0,1,},
 	{1,0,0,0,0,0,0,0,0,0,1,},
@@ -79,9 +80,13 @@ struct stConsole
 	// Random Distribution (Block)
 	uniform_int_distribution<> rdBlockDist;
 
+	// Clock
+	clock_t timeStart;
+
 	stConsole()
 		: hConsole(nullptr), hBuffer{ nullptr, }, nCurBuffer(0)
 		, rdGen(rdDevice()), rdBlockDist(0, BLOCK_COUNT - 1)
+		, timeStart(clock())
 	{
 	}
 };
@@ -360,7 +365,7 @@ void InputKey()
 	}
 }
 
-void FillBlank()
+void PushCharDown()
 {
 	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
@@ -382,6 +387,28 @@ void FillBlank()
 						break;
 					}
 				}
+			}
+		}
+	}
+}
+
+void FillBlank()
+{
+	double dTimeDiff = clock() - g_console.timeStart;
+
+	if (dTimeDiff < 1000) return;
+	if (g_player.GetGameOver()) return;
+
+	g_console.timeStart = clock();
+
+	for (int y = 0; y < MAP_HEIGHT; ++y)
+	{
+		for (int x = 0; x < MAP_WIDTH; ++x)
+		{
+			if (g_nArrMap[y][x] == -1)
+			{
+				// 빈칸을 랜덤 블록으로 채우기
+				g_nArrMap[y][x] = g_console.rdBlockDist(g_console.rdGen);
 			}
 		}
 	}
@@ -450,7 +477,11 @@ void CheckBlockLine()
 
 	if (!IsBlockMatch()) return;
 
-	if (DeleteLine()) FillBlank();
+	if (DeleteLine())
+	{
+		PushCharDown();
+		FillBlank();
+	}
 }
 
 void ClearScreen()

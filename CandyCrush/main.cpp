@@ -14,6 +14,7 @@
 // 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성
 // + 제한시간을 넣을까 말까
 // + 처음 빈 공간 -> timer로 블록을 미리 생성하고, 완성된 블록 덩어리를 위에서 아래로 내려오도록 할까(벽에 닿을 때까지)
+// + 빈공간이 있으면 충돌될 때까지 밑으로 내려오기
 
 using namespace std;
 
@@ -106,6 +107,45 @@ CPlayer g_player;
 // Previous Player Data
 CPlayer g_prevPlayerData;
 
+bool IsBlockMatch()
+{
+	bool bMatched = false;
+
+	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
+	{
+		for (int nX = 0; nX < MAP_WIDTH - 2; ++nX)
+		{
+			int a = g_nArrMap[nY][nX];
+			int b = g_nArrMap[nY][nX + 1];
+			int c = g_nArrMap[nY][nX + 2];
+
+			if (a >= 0 && a == b && b == c)
+			{
+				matchFlags[nY][nX] = matchFlags[nY][nX + 1] = matchFlags[nY][nX + 2] = true;
+				bMatched = true;
+			}
+		}
+	}
+
+	for (int nY = 0; nY < MAP_HEIGHT - 2; ++nY)
+	{
+		for (int nX = 0; nX < MAP_WIDTH; ++nX)
+		{
+			int a = g_nArrMap[nY][nX];
+			int b = g_nArrMap[nY + 1][nX];
+			int c = g_nArrMap[nY + 2][nX];
+
+			if (a >= 0 && a == b && b == c)
+			{
+				matchFlags[nY][nX] = matchFlags[nY + 1][nX] = matchFlags[nY + 2][nX] = true;
+				bMatched = true;
+			}
+		}
+	}
+
+	return bMatched;
+}
+
 void InitGame(bool bInitConsole = true)
 {
 	// Initialize Player Data
@@ -147,22 +187,30 @@ void InitGame(bool bInitConsole = true)
 
 	// Map
 	{
-		int nMapSize = sizeof(int) * MAP_WIDTH * MAP_HEIGHT;
-		memcpy_s(g_nArrMap, nMapSize, ORIGIN_MAP, nMapSize);
-
-		for (int nY = 0; nY < MAP_HEIGHT; ++nY)
+		// 맵 초기화
+		while (true)
 		{
-			for (int nX = 0; nX < MAP_WIDTH; ++nX)
+			int nMapSize = sizeof(int) * MAP_WIDTH * MAP_HEIGHT;
+			memcpy_s(g_nArrMap, nMapSize, ORIGIN_MAP, nMapSize);
+
+			for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 			{
-				if (ORIGIN_MAP[nY][nX] == 0)
+				for (int nX = 0; nX < MAP_WIDTH; ++nX)
 				{
-					g_nArrMap[nY][nX] = g_console.rdBlockDist(g_console.rdGen);
-				}
-				else
-				{
-					g_nArrMap[nY][nX] = -2;
+					if (ORIGIN_MAP[nY][nX] == 0)
+					{
+						g_nArrMap[nY][nX] = g_console.rdBlockDist(g_console.rdGen);
+					}
+					else
+					{
+						g_nArrMap[nY][nX] = -2;
+					}
 				}
 			}
+
+			// 블록 매칭이 없으면 루프 탈출
+			memset(matchFlags, false, sizeof(matchFlags));
+			if (!IsBlockMatch()) break;
 		}
 	}
 }
@@ -216,7 +264,8 @@ bool CheckBorder(const COORD& coordPlayer)
 	}
 
 	// 벽이라면 충돌
-	if (g_nArrMap[coordPlayer.Y][coordPlayer.X] == -1)
+	if (g_nArrMap[coordPlayer.Y][coordPlayer.X] == -1 ||
+		g_nArrMap[coordPlayer.Y][coordPlayer.X] == -2)
 	{
 		return true;
 	}
@@ -254,6 +303,27 @@ void SelectBlock()
 	g_pSelBlock = g_pCurBlock;
 }
 
+void Swap(int x, int y)
+{
+	int index = g_pSelBlock - &g_nArrMap[0][0];
+
+	int nY = index / MAP_WIDTH;
+	int nX = index % MAP_WIDTH;
+
+	if (nY > 0)
+	{
+		std::swap(g_nArrMap[nY][nX], g_nArrMap[nY + y][nX + x]);
+		
+		if (!IsBlockMatch())
+		{
+			std::swap(g_nArrMap[nY][nX], g_nArrMap[nY + y][nX + x]);
+		}		
+
+		g_pCurBlock = &g_nArrMap[nY][nX];
+		g_pSelBlock = nullptr;
+	}
+}
+
 void InputKey()
 {
 	int nKey = 0;
@@ -270,18 +340,7 @@ void InputKey()
 			else
 			{
 				if (!IsMoveAvailable(0, -1)) break;
-
-				int index = g_pSelBlock - &g_nArrMap[0][0];
-
-				int y = index / MAP_WIDTH;
-				int x = index % MAP_WIDTH;
-
-				if (y > 0)
-				{
-					std::swap(g_nArrMap[y][x], g_nArrMap[y - 1][x]);
-					g_pCurBlock = &g_nArrMap[y][x];
-					g_pSelBlock = nullptr;
-				}
+				Swap(0, -1);
 			}
 			break;
 		}
@@ -291,18 +350,7 @@ void InputKey()
 			else
 			{
 				if (!IsMoveAvailable(0, 1)) break;
-
-				int index = g_pSelBlock - &g_nArrMap[0][0];
-
-				int y = index / MAP_WIDTH;
-				int x = index % MAP_WIDTH;
-
-				if (y > 0 && y < MAP_HEIGHT - 1)
-				{
-					std::swap(g_nArrMap[y][x], g_nArrMap[y + 1][x]);
-					g_pCurBlock = &g_nArrMap[y][x];
-					g_pSelBlock = nullptr;
-				}
+				Swap(0, 1);
 			}
 			break;
 		}
@@ -312,18 +360,7 @@ void InputKey()
 			else
 			{
 				if (!IsMoveAvailable(-1, 0)) break;
-
-				int index = g_pSelBlock - &g_nArrMap[0][0];
-
-				int y = index / MAP_WIDTH;
-				int x = index % MAP_WIDTH;
-
-				if (x > 0)
-				{
-					std::swap(g_nArrMap[y][x], g_nArrMap[y][x - 1]);
-					g_pCurBlock = &g_nArrMap[y][x];
-					g_pSelBlock = nullptr;
-				}
+				Swap(-1, 0);
 			}
 			break;
 		}
@@ -333,19 +370,7 @@ void InputKey()
 			else
 			{
 				if (!IsMoveAvailable(1, 0)) break;
-
-				int index = g_pSelBlock - &g_nArrMap[0][0];
-
-				int y = index / MAP_WIDTH;
-				int x = index % MAP_WIDTH;
-
-				if (x > 0 && x < MAP_WIDTH - 1)
-				{
-					std::swap(g_nArrMap[y][x], g_nArrMap[y][x + 1]);
-					g_pCurBlock = &g_nArrMap[y][x];
-					g_pSelBlock = nullptr;
-				}
-
+				Swap(1, 0);
 			}
 			break;
 		}
@@ -414,45 +439,6 @@ void FillBlank()
 	}
 }
 
-bool IsBlockMatch()
-{
-	bool bMatched = false;
-
-	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
-	{
-		for (int nX = 0; nX < MAP_WIDTH - 2; ++nX)
-		{
-			int a = g_nArrMap[nY][nX];
-			int b = g_nArrMap[nY][nX + 1];
-			int c = g_nArrMap[nY][nX + 2];
-
-			if (a >= 0 && a == b && b == c)
-			{
-				matchFlags[nY][nX] = matchFlags[nY][nX + 1] = matchFlags[nY][nX + 2] = true;
-				bMatched = true;
-			}
-		}
-	}
-
-	for (int nY = 0; nY < MAP_HEIGHT - 2; ++nY)
-	{
-		for (int nX = 0; nX < MAP_WIDTH; ++nX)
-		{
-			int a = g_nArrMap[nY][nX];
-			int b = g_nArrMap[nY + 1][nX];
-			int c = g_nArrMap[nY + 2][nX];
-
-			if (a >= 0 && a == b && b == c)
-			{
-				matchFlags[nY][nX] = matchFlags[nY + 1][nX] = matchFlags[nY + 2][nX] = true;
-				bMatched = true;
-			}
-		}
-	}
-
-	return bMatched;
-}
-
 bool DeleteLine()
 {
 	bool bDelete = false; 
@@ -519,10 +505,9 @@ int main()
 
 	while (true)
 	{
+		Render(30, 5);
 		InputKey();
 		
-		Render(30, 5);
-
 		ClearScreen();
 		BufferFlip();
 		Sleep(1);

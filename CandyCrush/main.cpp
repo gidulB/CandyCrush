@@ -6,14 +6,13 @@
 
 // @TODO
 // 1. 3X3 이상이면 삭제 -> 해결
-// 2. 삭제되면 점수 추가
-// 3. 빈 공간 생기면 채워넣기
-// 4. 생성되는 시점부터 3X3이면 자동으로 삭제 및 점수 추가하기
+// 2. 삭제되면 점수 추가 -> 해결
+// 3. 빈 공간 생기면 채워넣기 -> 해결이긴 한데 수정해야 함
+// 4. 생성되는 시점부터 3X3이면 자동으로 삭제 -> 삭제가 이상함 수정해야 함
 // 5. InputKey로 위치 바꾸면 잠시 CHECKBLOCK 해제
 // 6. 맞으면 1,2,3 진행 후 다시 g_pCurBlock에 CHECKBLOCK 생성
 // 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성 -> 해결이긴 한데 눈에 안 보임
-// + 제한시간을 넣을까 말까
-// + 빈공간이 있으면 충돌될 때까지 밑으로 내려오기
+// + 제한시간을 넣을까 말까 -> 넣음 해결
 
 using namespace std;
 
@@ -220,6 +219,13 @@ void InitGame(bool bInitConsole = true)
 	// time
 	{
 		g_gameStartTime = clock();
+
+		COORD coord = { 60, 10 };
+		DWORD dw;
+		for (int i = 0; i < 2; ++i)
+		{
+			FillConsoleOutputCharacterW(g_console.hBuffer[i], L' ', 10, coord, &dw); // GameOver 초기화
+		}
 	}
 }
 
@@ -266,7 +272,7 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 		coord.X = 30 + nXOffset;
 		coord.Y = 0 + nYOffset;
 		wchar_t wchBuf[256];
-		swprintf_s(wchBuf, L"score : %6d", g_player.GetGameScore());
+		swprintf_s(wchBuf, L"SCORE : %6d", g_player.GetGameScore());
 		SetConsoleCursorPosition(g_console.hBuffer[g_console.nCurBuffer], coord);
 		WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], wchBuf, wcslen(wchBuf), &dw, NULL);
 	}
@@ -278,7 +284,7 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 
 		if (remainingTime < 0)
 		{
-			const wchar_t* msg = L"Time Over!";
+			const wchar_t* msg = L"TIME OVER!";
 			coord.X = 30 + nXOffset;
 			coord.Y = 5 + nYOffset;
 			DWORD dw = 0;
@@ -383,6 +389,8 @@ void InputKey()
 		{
 		case eKeyCode::KEY_UP:
 		{
+			if (g_player.GetGameOver()) break;
+
 			if(!g_pSelBlock) CurrentPlayer(0, -1);
 			else
 			{
@@ -393,6 +401,8 @@ void InputKey()
 		}
 		case eKeyCode::KEY_DOWN:
 		{
+			if (g_player.GetGameOver()) break;
+
 			if (!g_pSelBlock) CurrentPlayer(0, 1);
 			else
 			{
@@ -403,6 +413,8 @@ void InputKey()
 		}
 		case eKeyCode::KEY_LEFT:
 		{
+			if (g_player.GetGameOver()) break;
+
 			if (!g_pSelBlock) CurrentPlayer(-1, 0);
 			else
 			{
@@ -413,6 +425,8 @@ void InputKey()
 		}
 		case eKeyCode::KEY_RIGHT:
 		{
+			if (g_player.GetGameOver()) break;
+
 			if (!g_pSelBlock) CurrentPlayer(1, 0); 
 			else
 			{
@@ -423,6 +437,8 @@ void InputKey()
 		}
 		case eKeyCode::KEY_SPACE:
 		{
+			if (g_player.GetGameOver()) break;
+
 			SelectBlock();
 			break;
 		}
@@ -555,11 +571,8 @@ int main()
 	{
 		Render(30, 5);
 
-		if (!g_player.GetGameOver())
-		{			
-			InputKey();
-			CheckBlockLine();
-		}
+		InputKey();
+		CheckBlockLine();
 				
 		ClearScreen();
 		BufferFlip();

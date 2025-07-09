@@ -11,9 +11,8 @@
 // 4. 생성되는 시점부터 3X3이면 자동으로 삭제 및 점수 추가하기
 // 5. InputKey로 위치 바꾸면 잠시 CHECKBLOCK 해제
 // 6. 맞으면 1,2,3 진행 후 다시 g_pCurBlock에 CHECKBLOCK 생성
-// 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성
+// 7. 틀리면 다시 위치 원래대로 변경 및 g_pCurBlock에 CHECKBLOCK 생성 -> 해결이긴 한데 눈에 안 보임
 // + 제한시간을 넣을까 말까
-// + 처음 빈 공간 -> timer로 블록을 미리 생성하고, 완성된 블록 덩어리를 위에서 아래로 내려오도록 할까(벽에 닿을 때까지)
 // + 빈공간이 있으면 충돌될 때까지 밑으로 내려오기
 
 using namespace std;
@@ -219,6 +218,7 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 {
 	COORD coord{ 0, };
 	DWORD dw = 0;
+	char chBuf[256] = { 0, };
 
 	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
@@ -251,6 +251,21 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 			}
 
 		}
+	}
+
+	// Score
+	{
+		coord.X = 30 + nXOffset;
+		coord.Y = 0 + nYOffset;
+		memset(chBuf, 0, sizeof(chBuf));
+		int nLen = sprintf_s(chBuf, sizeof(chBuf), "score : %6d", g_player.GetGameScore());
+		SetConsoleCursorPosition(g_console.hBuffer[g_console.nCurBuffer], coord);
+		WriteFile(g_console.hBuffer[g_console.nCurBuffer], chBuf, nLen, &dw, NULL);
+	}
+
+	// GameOver
+	{
+		// 타임 종료 시 GameOver
 	}
 }
 
@@ -465,6 +480,7 @@ void CheckBlockLine()
 
 	if (DeleteLine())
 	{
+		g_player.AddGameScore(1);
 		PushCharDown();
 		FillBlank();
 	}

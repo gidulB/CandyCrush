@@ -155,7 +155,6 @@ void InitGame(bool bInitConsole = true)
 		g_player.SetPosition(START_POS_X, START_POS_Y);
 		g_player.SetXPositionRange(-1, MAP_WIDTH);
 		g_player.SetYPositionRange(0, MAP_HEIGHT);
-		g_player.SetBlock(0);
 		g_player.SetGameScore(0);
 		g_player.SetGameOver(false);
 

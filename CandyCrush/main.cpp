@@ -25,6 +25,8 @@ constexpr int MAP_HEIGHT = 11;
 constexpr int START_POS_X = 4;
 constexpr int START_POS_Y = 1;
 
+constexpr int GAME_TIME_LIMIT = 60;
+
 // Origin Map
 const int ORIGIN_MAP[MAP_HEIGHT][MAP_WIDTH] =
 {
@@ -105,6 +107,8 @@ stConsole g_console;
 CPlayer g_player;
 // Previous Player Data
 CPlayer g_prevPlayerData;
+// Clock
+clock_t g_gameStartTime;
 
 bool IsBlockMatch()
 {
@@ -212,14 +216,18 @@ void InitGame(bool bInitConsole = true)
 			if (!IsBlockMatch()) break;
 		}
 	}
+
+	// time
+	{
+		g_gameStartTime = clock();
+	}
 }
 
 void Render(int nXOffset = 0, int nYOffset = 0)
 {
 	COORD coord{ 0, };
 	DWORD dw = 0;
-	char chBuf[256] = { 0, };
-
+	
 	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
 		for (int nX = 0; nX < MAP_WIDTH; ++nX)
@@ -257,15 +265,39 @@ void Render(int nXOffset = 0, int nYOffset = 0)
 	{
 		coord.X = 30 + nXOffset;
 		coord.Y = 0 + nYOffset;
-		memset(chBuf, 0, sizeof(chBuf));
-		int nLen = sprintf_s(chBuf, sizeof(chBuf), "score : %6d", g_player.GetGameScore());
+		wchar_t wchBuf[256];
+		swprintf_s(wchBuf, L"score : %6d", g_player.GetGameScore());
 		SetConsoleCursorPosition(g_console.hBuffer[g_console.nCurBuffer], coord);
-		WriteFile(g_console.hBuffer[g_console.nCurBuffer], chBuf, nLen, &dw, NULL);
+		WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], wchBuf, wcslen(wchBuf), &dw, NULL);
 	}
 
-	// GameOver
+	// Time and GameOver
 	{
-		// 타임 종료 시 GameOver
+		int elapsedTime = static_cast<int>((clock() - g_gameStartTime) / CLOCKS_PER_SEC);
+		int remainingTime = GAME_TIME_LIMIT - elapsedTime;
+
+		if (remainingTime < 0)
+		{
+			const wchar_t* msg = L"Time Over!";
+			coord.X = 30 + nXOffset;
+			coord.Y = 5 + nYOffset;
+			DWORD dw = 0;
+
+			SetConsoleCursorPosition(g_console.hBuffer[g_console.nCurBuffer], coord);
+			WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], msg, wcslen(msg), &dw, NULL);
+
+			g_player.SetGameOver(true);
+		}
+		else
+		{
+			wchar_t timerBuf[32];
+			swprintf_s(timerBuf, L"TIME: %2d", remainingTime);
+
+			coord.X = 30 + nXOffset;
+			coord.Y = 10 + nYOffset;
+			SetConsoleCursorPosition(g_console.hBuffer[g_console.nCurBuffer], coord);
+			WriteConsoleW(g_console.hBuffer[g_console.nCurBuffer], timerBuf, wcslen(timerBuf), &dw, NULL);
+		}
 	}
 }
 
@@ -436,10 +468,10 @@ void FillBlank()
 {
 	double dTimeDiff = clock() - g_console.timeStart;
 
-	if (dTimeDiff < 1000) return;
+	if (dTimeDiff < 1000) return;  // FillBlank는 1초마다만 동작
 	if (g_player.GetGameOver()) return;
 
-	g_console.timeStart = clock();
+	g_console.timeStart = clock();  
 
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 	{
@@ -522,13 +554,16 @@ int main()
 	while (true)
 	{
 		Render(30, 5);
-		InputKey();
-		
+
+		if (!g_player.GetGameOver())
+		{			
+			InputKey();
+			CheckBlockLine();
+		}
+				
 		ClearScreen();
 		BufferFlip();
-		Sleep(1);
-
-		CheckBlockLine();
+		Sleep(1);		
 	}
 
 	DestroyGame();

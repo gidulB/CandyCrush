@@ -58,7 +58,8 @@ public:
 
 	inline void AddGameScore(int nScore)
 	{
-		m_nGameScore = m_nGameScore + nScore >= 0 ? m_nGameScore + nScore : 0;
+		m_nGameScore += nScore;
+		if (m_nGameScore < 0) m_nGameScore = 0;
 	}
 
 	inline void SetGameOver(bool bIsGameOver)

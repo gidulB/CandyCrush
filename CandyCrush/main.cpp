@@ -113,40 +113,85 @@ bool IsBlockMatch()
 {
 	bool bMatched = false;
 
+	// 가로 방향 검사
 	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
-		for (int nX = 0; nX < MAP_WIDTH - 2; ++nX)
+		int nCount = 1;
+		for (int nX = 1; nX < MAP_WIDTH; ++nX)
 		{
-			int a = g_nArrMap[nY][nX];
-			int b = g_nArrMap[nY][nX + 1];
-			int c = g_nArrMap[nY][nX + 2];
+			int nCurr = g_nArrMap[nY][nX];
+			int nPrev = g_nArrMap[nY][nX - 1];
 
-			if (a >= 0 && a == b && b == c)
+			if (nCurr >= 0 && nCurr == nPrev)
 			{
-				matchFlags[nY][nX] = matchFlags[nY][nX + 1] = matchFlags[nY][nX + 2] = true;
-				bMatched = true;
+				nCount++;
 			}
+			else
+			{
+				if (nCount >= 3)
+				{
+					for (int nK = 0; nK < nCount; ++nK)
+					{
+						matchFlags[nY][nX - 1 - nK] = true;
+					}
+						
+					bMatched = true;
+				}
+				nCount = 1;
+			}
+		}
+		if (nCount >= 3)
+		{
+			for (int nK = 0; nK < nCount; ++nK)
+			{
+				matchFlags[nY][MAP_WIDTH - 1 - nK] = true;
+			}
+				
+			bMatched = true;
 		}
 	}
 
-	for (int nY = 0; nY < MAP_HEIGHT - 2; ++nY)
+	// 세로 방향 검사
+	for (int nX = 0; nX < MAP_WIDTH; ++nX)
 	{
-		for (int nX = 0; nX < MAP_WIDTH; ++nX)
+		int nCount = 1;
+		for (int nY = 1; nY < MAP_HEIGHT; ++nY)
 		{
-			int a = g_nArrMap[nY][nX];
-			int b = g_nArrMap[nY + 1][nX];
-			int c = g_nArrMap[nY + 2][nX];
+			int nCurr = g_nArrMap[nY][nX];
+			int nPrev = g_nArrMap[nY - 1][nX];
 
-			if (a >= 0 && a == b && b == c)
+			if (nCurr >= 0 && nCurr == nPrev)
 			{
-				matchFlags[nY][nX] = matchFlags[nY + 1][nX] = matchFlags[nY + 2][nX] = true;
-				bMatched = true;
+				nCount++;
 			}
+			else
+			{
+				if (nCount >= 3)
+				{
+					for (int nK = 0; nK < nCount; ++nK)
+					{
+						matchFlags[nY - 1 - nK][nX] = true;
+					}
+						
+					bMatched = true;
+				}
+				nCount = 1;
+			}
+		}
+		if (nCount >= 3)
+		{
+			for (int nK = 0; nK < nCount; ++nK)
+			{
+				matchFlags[MAP_HEIGHT - 1 - nK][nX] = true;
+			}
+				
+			bMatched = true;
 		}
 	}
 
 	return bMatched;
 }
+
 
 void InitGame(bool bInitConsole = true)
 {
@@ -454,40 +499,33 @@ void InputKey()
 
 void PushCharDown()
 {
-	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
+	for (int x = 0; x < MAP_WIDTH; ++x)
 	{
-		for (int nX = 0; nX < MAP_WIDTH; ++nX)
+		int writeY = MAP_HEIGHT - 1;
+
+		while (writeY >= 0 && g_nArrMap[writeY][x] == -2)
+			writeY--;
+
+		for (int y = writeY; y >= 0; --y)
 		{
-			if (g_nArrMap[nY][nX] == -1)
+			if (g_nArrMap[y][x] >= 0 && g_nArrMap[y][x] < BLOCK_COUNT)
 			{
-				// 위쪽에서 블록을 전부 당겨 내려오기
-				for (int nK = nY - 1; nK >= 0; --nK)
+				if (writeY != y)
 				{
-					if (g_nArrMap[nK][nX] >= 0 && g_nArrMap[nK][nX] < BLOCK_COUNT)
-					{
-						// 아래로 하나씩 밀기
-						for (int j = nK; j < nY; ++j)
-						{
-							g_nArrMap[j + 1][nX] = g_nArrMap[j][nX];
-						}
-						g_nArrMap[nK][nX] = 0; // 맨 위는 빈칸
-						break;
-					}
+					g_nArrMap[writeY][x] = g_nArrMap[y][x];
+					g_nArrMap[y][x] = -1;
 				}
+				writeY--;
+				
+				while (writeY >= 0 && g_nArrMap[writeY][x] == -2)
+					writeY--;
 			}
 		}
 	}
 }
 
 void FillBlank()
-{
-	double dTimeDiff = clock() - g_console.timeStart;
-
-	if (dTimeDiff < 1000) return;  // FillBlank는 1초마다만 동작
-	if (g_player.GetGameOver()) return;
-
-	g_console.timeStart = clock();  
-
+{	
 	for (int y = 0; y < MAP_HEIGHT; ++y)
 	{
 		for (int x = 0; x < MAP_WIDTH; ++x)
@@ -501,35 +539,44 @@ void FillBlank()
 	}
 }
 
-bool DeleteLine()
+int DeleteLine()
 {
-	bool bDelete = false; 
+	int deleteCount = 0;
+
 	for (int nY = 0; nY < MAP_HEIGHT; ++nY)
 	{
 		for (int nX = 0; nX < MAP_WIDTH; ++nX)
 		{
 			if (matchFlags[nY][nX])
 			{
-				g_nArrMap[nY][nX] = -1;  // -1은 벽/빈칸 처리		
-				bDelete = true;
+				g_nArrMap[nY][nX] = -1;
+				deleteCount++;
 			}
 		}
 	}
 
-	return bDelete;
+	// 점수 추가
+	if (deleteCount > 0)
+	{
+		g_player.AddGameScore(deleteCount);
+	}
+
+	return deleteCount;
 }
 
 void CheckBlockLine()
-{
-	memset(matchFlags, false, sizeof(matchFlags));
-
-	if (!IsBlockMatch()) return;
-
-	if (DeleteLine())
+{	
+	while (true)
 	{
-		g_player.AddGameScore(1);
-		PushCharDown();
-		FillBlank();
+		memset(matchFlags, false, sizeof(matchFlags));
+
+		if (!IsBlockMatch()) break;
+
+		if (DeleteLine() > 0)
+		{
+			PushCharDown();
+			FillBlank();
+		}
 	}
 }
 
